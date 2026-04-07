@@ -966,9 +966,41 @@ function renderCart() {
   }).join('');
   document.getElementById('cartTotal').textContent = '$'+total.toLocaleString('es-CL');
 }
-function checkout() {
-  if(cart.length === 0) return;
-  alert('Redirigiendo al checkout... (aquí conectarías con Shopify/MercadoPago)');
+async function checkout() {
+  if (cart.length === 0) return;
+
+  const btn = document.querySelector('#cartPanel .btn-main');
+  const originalText = btn.textContent;
+  btn.textContent = 'PROCESANDO...';
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  try {
+    const items = cart.map(item => ({
+      name: item.name,
+      price: parseInt(item.price.replace(/\D/g, '')),
+      quantity: 1
+    }));
+
+    const res = await fetch('/api/create_preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    });
+
+    if (!res.ok) throw new Error('Error en el servidor');
+
+    const data = await res.json();
+    window.location.href = data.init_point;
+
+  } catch (err) {
+    console.error(err);
+    alert('Hubo un error al procesar el pago. Intenta de nuevo.');
+    btn.textContent = originalText;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
 }
 
 // ── FILTERS ──
